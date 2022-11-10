@@ -10,10 +10,12 @@ eval_step: 500
 model:
   max_length: 64
   num_beams: 4
+  num_beam_groups: 1
   early_stopping: true
   no_repeat_ngram_size: 2
-  length_penalty: 3
-  repetition_penalty: 3
+  length_penalty: 3.0
+  repetition_penalty: 3.0
+  diversity_penalty: 0.0
   encoder:
     pretrained_name: google/vit-base-patch16-224-in21k
     feature_extractor:

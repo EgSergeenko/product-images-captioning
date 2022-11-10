@@ -46,9 +46,11 @@ def get_model(
 
     model.config.max_length = config.max_length
     model.config.num_beams = config.num_beams
+    model.config.num_beam_groups = config.num_beam_groups
     model.config.early_stopping = config.early_stopping
     model.config.no_repeat_ngram_size = config.no_repeat_ngram_size
     model.config.length_penalty = config.length_penalty
     model.config.repetition_penalty = config.repetition_penalty
+    model.config.diversity_penalty = config.diversity_penalty
 
     return model
