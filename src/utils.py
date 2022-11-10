@@ -1,3 +1,5 @@
+import logging
+
 import torch
 
 
@@ -25,7 +27,7 @@ def get_predictions(
 ):
     predictions = []
     model.eval()
-    for idx, batch in enumerate(data_loader):
+    for batch in data_loader:
         pixel_values = batch['pixel_values'].to(device)
         labels = batch['labels'].to(device)
 
@@ -55,3 +57,19 @@ def add_special_tokens(
         text,
         eos_token,
     )
+
+
+def get_stream_handler(log_format: str) -> logging.StreamHandler:
+    stream_handler = logging.StreamHandler()
+    stream_handler.setLevel(logging.INFO)
+    stream_handler.setFormatter(
+        logging.Formatter(log_format, style='{'),
+    )
+    return stream_handler
+
+
+def get_logger(log_format: str) -> logging.Logger:
+    logger = logging.getLogger()
+    logger.setLevel(logging.INFO)
+    logger.addHandler(get_stream_handler(log_format))
+    return logger
