@@ -1,3 +1,4 @@
+"""Model and feature extraction logic."""
 from omegaconf import DictConfig
 from transformers import (GPT2Tokenizer, PreTrainedModel, PreTrainedTokenizer,
                           VisionEncoderDecoderModel, ViTFeatureExtractor)
@@ -6,6 +7,14 @@ from transformers import (GPT2Tokenizer, PreTrainedModel, PreTrainedTokenizer,
 def get_feature_extractor(
     pretrained_feature_extractor: str,
 ) -> ViTFeatureExtractor:
+    """Get a pretrained ViT feature extractor by the given name.
+
+    Args:
+        pretrained_feature_extractor: The pretrained ft name.
+
+    Returns:
+        The pretrained feature ViT extractor.
+    """
     return ViTFeatureExtractor.from_pretrained(
         pretrained_feature_extractor,
     )
@@ -14,6 +23,14 @@ def get_feature_extractor(
 def get_tokenizer(
     pretrained_tokenizer: str,
 ) -> GPT2Tokenizer:
+    """Get a pretrained GPT2 tokenizer by the given name.
+
+    Args:
+        pretrained_tokenizer: The pretrained tokenizer name.
+
+    Returns:
+        The pretrained GPT2 tokenizer.
+    """
     tokenizer = GPT2Tokenizer.from_pretrained(
         pretrained_tokenizer, use_fast=True,
     )
@@ -32,6 +49,17 @@ def get_model(
     tokenizer: PreTrainedTokenizer,
     config: DictConfig,
 ) -> PreTrainedModel:
+    """Get and configure a pretrained EncoderDecoder model.
+
+    Args:
+        pretrained_encoder: Pretrained encoder name.
+        pretrained_decoder: Pretrained decoder name.
+        tokenizer: Pretrained tokenizer for encoder.
+        config: Model configuration.
+
+    Returns:
+        VisionEncoder decoder from pretrained parts with applied configuration.
+    """
     model = VisionEncoderDecoderModel.from_encoder_decoder_pretrained(
         pretrained_encoder, pretrained_decoder,
     )

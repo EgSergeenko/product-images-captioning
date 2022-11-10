@@ -1,3 +1,4 @@
+"""An inference script to run on a single image."""
 import hydra
 import torch
 from omegaconf import DictConfig
@@ -10,6 +11,11 @@ from utils import get_logger
 
 @hydra.main(version_base=None, config_path='../configs', config_name='inference')
 def inference(config: DictConfig) -> None:
+    """Run inference on the image..
+
+    Args:
+        config: The run configuration.
+    """
     logger = get_logger(config.log_format)
 
     device = torch.device('cpu')
@@ -42,11 +48,13 @@ def inference(config: DictConfig) -> None:
         output_ids,
         skip_special_tokens=True,
     )
-    logger.info('Image: {0}'.format(
+    logger.info(
+        'Image: {0}'.format(
             config.data.image_filepath,
         ),
     )
-    logger.info('Prediction: {0}'.format(
+    logger.info(
+        'Prediction: {0}'.format(
             prediction[0],
         ),
     )

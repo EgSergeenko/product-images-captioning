@@ -1,3 +1,4 @@
+"""Utils for operating with data."""
 import os
 
 import pandas as pd
@@ -10,6 +11,8 @@ from utils import add_special_tokens
 
 
 class ProductImageCaptionsDataset(Dataset):
+    """A class that produces pairs (image_features, text_features)."""
+
     def __init__(
         self,
         data: pd.DataFrame,
@@ -18,6 +21,15 @@ class ProductImageCaptionsDataset(Dataset):
         tokenizer: PreTrainedTokenizer,
         max_length: int,
     ) -> None:
+        """Initialize the dataset instance.
+
+        Args:
+            data: Data about samples.
+            image_dir: The directory path with dataset images.
+            feature_extractor: The tool to extract image features.
+            tokenizer: The tool to extract text features.
+            max_length: Max token sequence length allowed.
+        """
         self.data = data
         self.image_dir = image_dir
         self.feature_extractor = feature_extractor
@@ -26,9 +38,22 @@ class ProductImageCaptionsDataset(Dataset):
         self.cache = {}
 
     def __len__(self) -> int:
+        """Get the dataset length.
+
+        Returns:
+            The dataset length.
+        """
         return len(self.data)
 
     def __getitem__(self, idx: int) -> dict[str, torch.Tensor]:
+        """Get the sample by index.
+
+        Args:
+            idx: The given index.
+
+        Returns:
+            The sample corresponding to this index.
+        """
         return {
             'pixel_values': self._get_pixel_values(idx),
             'labels': self._get_labels(idx),

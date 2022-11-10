@@ -1,3 +1,4 @@
+"""Script that creates the processed dataset from the raw one."""
 import os
 
 import click
@@ -20,6 +21,16 @@ def create_dataset(
     test_size: float,
     seed: int,
 ) -> None:
+    """Preprocess the raw dataset and split it into train/val/test.
+
+    Args:
+        input_dataset_filepath: A filepath to the raw dataset.
+        output_dir: A directory path to save processed datasets in.
+        image_dir: A directory path with dataset images.
+        val_size: Val set size ratio.
+        test_size: Test set size ratio.
+        seed: Random seed for reproducibility.
+    """
     dataset = pd.read_csv(
         input_dataset_filepath,
         dtype={'article_id': str},
@@ -62,6 +73,15 @@ def create_dataset(
 
 
 def image_exists(article_id: str, image_dir: str) -> bool:
+    """Check if there is an image with given id.
+
+    Args:
+        article_id: Image ID (filepath).
+        image_dir:  The directory path with dataset images.
+
+    Returns:
+        True if the image exists, False otherwise.
+    """
     image_filepath = os.path.join(
         image_dir,
         article_id[:3],
@@ -78,6 +98,17 @@ def train_test_val_split(
     test_size: float,
     seed: int,
 ) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
+    """Split the dataset into three parts in the specified proportions.
+
+    Args:
+        dataset: A dataset to split.
+        val_size: Val set size ratio.
+        test_size: Test set size ratio.
+        seed: Random seed for reproducibility.
+
+    Returns:
+        Three subsets: train dataset, val dataset, test_dataset.
+    """
     train_dataset, val_test_dataset = train_test_split(
         dataset,
         test_size=val_size + test_size,

@@ -1,3 +1,4 @@
+"""Train model on the train set and evaluate on the val set."""
 import evaluate
 import hydra
 import pandas as pd
@@ -13,6 +14,11 @@ from utils import get_logger, get_max_length, get_predictions
 
 @hydra.main(version_base=None, config_path='../configs', config_name='train')
 def train(config: DictConfig) -> None:
+    """Run training.
+
+    Args:
+        config: The run configuration.
+    """
     logger = get_logger(config.log_format)
 
     device = torch.device('cpu')
@@ -140,6 +146,15 @@ def train_step(
     optimizer: torch.optim.Optimizer,
     scaler: torch.cuda.amp.GradScaler | None,
 ) -> None:
+    """Process one batch.
+
+    Args:
+        model: The trained model.
+        pixel_values: Image features batch.
+        labels: Text features batch.
+        optimizer: The model optimizer.
+        scaler: The gradient scaler.
+    """
     optimizer.zero_grad()
     if scaler is None:
         loss = model(

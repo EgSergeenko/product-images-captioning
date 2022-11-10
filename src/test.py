@@ -1,3 +1,4 @@
+"""Run inference on the test set."""
 import evaluate
 import hydra
 import pandas as pd
@@ -13,6 +14,11 @@ from utils import get_logger, get_max_length, get_predictions
 
 @hydra.main(version_base=None, config_path='../configs', config_name='test')
 def test(config: DictConfig) -> None:
+    """Run inference on the test set and evaluate predictions.
+
+    Args:
+        config: The run configuration.
+    """
     logger = get_logger(config.log_format)
 
     device = torch.device('cpu')
