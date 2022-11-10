@@ -1,162 +1,162 @@
+import evaluate
+import hydra
 import pandas as pd
 import torch
+from omegaconf import DictConfig
 from torch.optim import AdamW
 from torch.utils.data import DataLoader
-from transformers import (GPT2Tokenizer, VisionEncoderDecoderModel,
-                          ViTFeatureExtractor)
 
 from data import ProductImageCaptionsDataset
-from utils import get_max_length, get_prediction
+from model import get_feature_extractor, get_model, get_tokenizer
+from utils import get_logger, get_max_length, get_predictions
 
 
-def train():
-    # TODO Config + CLI
+@hydra.main(version_base=None, config_path='../configs', config_name='train')
+def train(config: DictConfig) -> None:
+    logger = get_logger(config.log_format)
 
-    device = torch.device(
-        'cuda' if torch.cuda.is_available() else 'cpu',
+    device = torch.device('cpu')
+    if config.device == 'cuda':
+        if torch.cuda.is_available():
+            device = torch.device('cuda')
+
+    train_data = pd.read_csv(
+        config.data.train.csv_filepath,
+        dtype={'article_id': str},
     )
-
-    data = pd.read_csv(
-        'data/data.csv',
+    val_data = pd.read_csv(
+        config.data.val.csv_filepath,
         dtype={'article_id': str},
     )
 
-    tokenizer = get_tokenizer()
-    feature_extractor = get_feature_extractor()
+    feature_extractor = get_feature_extractor(
+        config.model.encoder.feature_extractor.pretrained_name,
+    )
+    tokenizer = get_tokenizer(
+        config.model.decoder.tokenizer.pretrained_name,
+    )
+    model = get_model(
+        config.model.encoder.pretrained_name,
+        config.model.decoder.pretrained_name,
+        tokenizer,
+        config.model,
+    ).to(device)
 
-    max_length = get_max_length(
-        data['detail_desc'],
+    val_max_length = get_max_length(
+        val_data['detail_desc'],
         tokenizer,
     )
-
-    model = get_model(tokenizer).to(device)
-
-    dataset = ProductImageCaptionsDataset(
-        data=data,
-        image_dir='data/images',
+    references = [[reference] for reference in val_data['detail_desc']]
+    train_dataset = ProductImageCaptionsDataset(
+        data=train_data,
+        image_dir=config.data.image_dir,
         feature_extractor=feature_extractor,
         tokenizer=tokenizer,
-        max_length=64,
+        max_length=config.data.max_length,
     )
-    data_loader = DataLoader(
-        dataset=dataset,
-        batch_size=1,
-        shuffle=True,
-        drop_last=True,
+    val_dataset = ProductImageCaptionsDataset(
+        data=val_data,
+        image_dir=config.data.image_dir,
+        feature_extractor=feature_extractor,
+        tokenizer=tokenizer,
+        max_length=val_max_length,
+    )
+    train_data_loader = DataLoader(
+        dataset=train_dataset,
+        batch_size=config.data.train.batch_size,
+        shuffle=config.data.train.shuffle,
+        drop_last=config.data.train.drop_last,
+        pin_memory=True,
+    )
+    val_data_loader = DataLoader(
+        dataset=val_dataset,
+        batch_size=config.data.val.batch_size,
+        shuffle=config.data.val.shuffle,
+        drop_last=config.data.val.drop_last,
         pin_memory=True,
     )
 
     optimizer = AdamW(
         model.parameters(),
-        lr=1e-4,
+        lr=config.optimizer.lr,
     )
-
     scaler = None
     if device.type == 'cuda':
         scaler = torch.cuda.amp.GradScaler()
 
-    sample = dataset[0]
-    pixel_values, _ = sample['pixel_values'], sample['labels']
+    metric = evaluate.load('sacrebleu')
 
-    epochs = 1
-    for _ in range(epochs):
-        train_epoch(
-            model,
-            data_loader,
-            optimizer,
-            scaler,
-            device,
-            25,
-        )
+    best_score, current_step = 0, 0
+    for _ in range(config.epochs):
+        model.train()
+        for batch in train_data_loader:
+            pixel_values = batch['pixel_values'].to(device)
+            labels = batch['labels'].to(device)
 
-        prediction = get_prediction(
-            model,
-            tokenizer,
-            pixel_values.to(device),
-        )
-        print(prediction)
-    model.save_pretrained('vit-distilgpt2')
-    tokenizer.save_pretrained('vit-distilgpt2-tokenizer')
+            train_step(
+                model,
+                pixel_values,
+                labels,
+                optimizer,
+                scaler,
+            )
+            current_step += 1
+
+            if current_step % config.eval_step == 0:
+                predictions = get_predictions(
+                    model,
+                    tokenizer,
+                    val_data_loader,
+                    device,
+                )
+                score = metric.compute(
+                    predictions=predictions,
+                    references=references,
+                )['score']
+                logger.info(
+                    'Step: {0}, SacreBLEU: {1}'.format(
+                        current_step, score,
+                    ),
+                )
+                if score > best_score:
+                    logger.info('Updating score...')
+                    best_score = score
+                    logger.info('Saving model...')
+                    feature_extractor.save_pretrained(
+                        config.data.checkpoint.feature_extractor,
+                    )
+                    tokenizer.save_pretrained(
+                        config.data.checkpoint.tokenizer,
+                    )
+                    model.save_pretrained(
+                        config.data.checkpoint.model,
+                    )
 
 
-def train_epoch(
+def train_step(
     model,
-    data_loader,
+    pixel_values,
+    labels,
     optimizer,
     scaler,
-    device,
-    log_step,
 ):
-    model.train()
-
-    for idx, batch in enumerate(data_loader):
-        pixel_values = batch['pixel_values'].to(device)
-        labels = batch['labels'].to(device)
-
-        optimizer.zero_grad()
-        if scaler is None:
+    optimizer.zero_grad()
+    if scaler is None:
+        loss = model(
+            pixel_values=pixel_values,
+            labels=labels,
+        ).loss
+        loss.backward()
+        optimizer.step()
+    else:
+        with torch.autocast(device_type='cuda'):
             loss = model(
                 pixel_values=pixel_values,
                 labels=labels,
             ).loss
-            loss.backward()
-            optimizer.step()
-        else:
-            with torch.autocast(device_type='cuda'):
-                loss = model(
-                    pixel_values=pixel_values,
-                    labels=labels,
-                ).loss
-            scaler.scale(loss).backward()
-            scaler.step(optimizer)
-            scaler.update()
-
-        if (idx + 1) % log_step == 0:
-            print(
-                'Step: {0}, Loss: {1:.5f}'.format(
-                    idx + 1,
-                    loss.item(),
-                ),
-            )
-
-
-def get_feature_extractor():
-    return ViTFeatureExtractor.from_pretrained(
-        'google/vit-base-patch16-224-in21k',
-    )
-
-
-def get_tokenizer():
-    tokenizer = GPT2Tokenizer.from_pretrained(
-        'distilgpt2',
-    )
-    tokenizer.pad_token = tokenizer.eos_token
-    return tokenizer
-
-
-def get_model(
-    tokenizer,
-    max_length=64,
-    no_repeat_ngram_size=3,
-    length_penalty=2.0,
-    num_beams=4,
-):
-    model = VisionEncoderDecoderModel.from_encoder_decoder_pretrained(
-        'google/vit-base-patch16-224-in21k', 'distilgpt2',
-    )
-    model.config.decoder_start_token_id = tokenizer.bos_token_id
-    model.config.pad_token_id = tokenizer.pad_token_id
-    model.config.eos_token_id = tokenizer.sep_token_id
-
-    model.decoder.resize_token_embeddings(len(tokenizer))
-    model.config.vocab_size = model.config.decoder.vocab_size
-
-    model.config.max_length = max_length
-    model.config.no_repeat_ngram_size = no_repeat_ngram_size
-    model.config.length_penalty = length_penalty
-    model.config.num_beams = num_beams
-
-    return model
+        scaler.scale(loss).backward()
+        scaler.step(optimizer)
+        scaler.update()
 
 
 if __name__ == '__main__':
