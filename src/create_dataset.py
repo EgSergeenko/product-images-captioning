@@ -1,13 +1,18 @@
 import os
 
+import click
 import pandas as pd
 
 
+@click.command()
+@click.option('--raw-dataset-filepath', required=True)
+@click.option('--processed-dataset-filepath', required=True)
+@click.option('--image-dir', required=True)
 def create_dataset(
-    raw_dataset_filepath,
-    processed_dataset_filepath,
-    image_dir,
-):
+    raw_dataset_filepath: str,
+    processed_dataset_filepath: str,
+    image_dir: str,
+) -> None:
     dataset = pd.read_csv(
         raw_dataset_filepath,
         dtype={'article_id': str},
@@ -31,7 +36,7 @@ def create_dataset(
     )
 
 
-def image_exists(article_id, image_dir):
+def image_exists(article_id: str, image_dir: str) -> bool:
     image_filepath = os.path.join(
         image_dir,
         article_id[:3],
@@ -43,9 +48,4 @@ def image_exists(article_id, image_dir):
 
 
 if __name__ == '__main__':
-    # TODO CLI
-    create_dataset(
-        'data/articles.csv',
-        'data/data.csv',
-        'data/images',
-    )
+    create_dataset()
