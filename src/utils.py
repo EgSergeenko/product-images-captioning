@@ -1,9 +1,14 @@
 import logging
 
 import torch
+from torch.utils.data import DataLoader
+from transformers import PreTrainedModel, PreTrainedTokenizer
 
 
-def get_max_length(texts, tokenizer):
+def get_max_length(
+    texts: list[str],
+    tokenizer: PreTrainedTokenizer,
+) -> int:
     max_length = 0
     for text in texts:
         text = add_special_tokens(
@@ -20,11 +25,11 @@ def get_max_length(texts, tokenizer):
 
 
 def get_predictions(
-    model,
-    tokenizer,
-    data_loader,
-    device,
-):
+    model: PreTrainedModel,
+    tokenizer: PreTrainedTokenizer,
+    data_loader: DataLoader,
+    device: torch.device,
+) -> list[str]:
     predictions = []
     model.eval()
     for batch in data_loader:

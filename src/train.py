@@ -43,7 +43,7 @@ def train(config: DictConfig) -> None:
     ).to(device)
 
     val_max_length = get_max_length(
-        val_data['detail_desc'],
+        val_data['detail_desc'].tolist(),
         tokenizer,
     )
     references = [[reference] for reference in val_data['detail_desc']]
@@ -134,12 +134,12 @@ def train(config: DictConfig) -> None:
 
 
 def train_step(
-    model,
-    pixel_values,
-    labels,
-    optimizer,
-    scaler,
-):
+    model: torch.nn.Module,
+    pixel_values: torch.Tensor,
+    labels: torch.Tensor,
+    optimizer: torch.optim.Optimizer,
+    scaler: torch.cuda.amp.GradScaler | None,
+) -> None:
     optimizer.zero_grad()
     if scaler is None:
         loss = model(

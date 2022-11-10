@@ -1,5 +1,5 @@
 from omegaconf import DictConfig
-from transformers import (GPT2Tokenizer, PreTrainedModel,
+from transformers import (GPT2Tokenizer, PreTrainedModel, PreTrainedTokenizer,
                           VisionEncoderDecoderModel, ViTFeatureExtractor)
 
 
@@ -29,7 +29,7 @@ def get_tokenizer(
 def get_model(
     pretrained_encoder: str,
     pretrained_decoder: str,
-    tokenizer: GPT2Tokenizer,
+    tokenizer: PreTrainedTokenizer,
     config: DictConfig,
 ) -> PreTrainedModel:
     model = VisionEncoderDecoderModel.from_encoder_decoder_pretrained(
