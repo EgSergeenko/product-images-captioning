@@ -3,6 +3,7 @@ import os
 import torch
 from PIL import Image
 from torch.utils.data import Dataset
+from utils import add_special_tokens
 
 
 class ProductImageCaptionsDataset(Dataset):
@@ -19,6 +20,7 @@ class ProductImageCaptionsDataset(Dataset):
         self.feature_extractor = feature_extractor
         self.tokenizer = tokenizer
         self.max_length = max_length
+        self.cache = {}
 
     def __len__(self):
         return len(self.data)
@@ -45,15 +47,23 @@ class ProductImageCaptionsDataset(Dataset):
         ).pixel_values.squeeze()
 
     def _get_labels(self, idx):
-        caption = self.data['detail_desc'][idx]
+        if idx in self.cache:
+            return self.cache[idx]
+        caption = add_special_tokens(
+            self.data['detail_desc'][idx],
+            self.tokenizer.bos_token,
+            self.tokenizer.eos_token,
+        )
         labels = self.tokenizer(
             caption,
             padding='max_length',
             truncation=True,
             max_length=self.max_length,
             return_tensors='pt',
-        ).input_ids
-        return self._labels_mask(labels)
+        ).input_ids.squeeze()
+        labels = self._labels_mask(labels)
+        self.cache[idx] = labels
+        return labels
 
     def _labels_mask(self, labels):
         return torch.where(
