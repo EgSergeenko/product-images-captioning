@@ -1,8 +1,10 @@
 import os
 
+import pandas as pd
 import torch
 from PIL import Image
 from torch.utils.data import Dataset
+from transformers import PreTrainedTokenizer, ViTFeatureExtractor
 
 from utils import add_special_tokens
 
@@ -10,12 +12,12 @@ from utils import add_special_tokens
 class ProductImageCaptionsDataset(Dataset):
     def __init__(
         self,
-        data,
-        image_dir,
-        feature_extractor,
-        tokenizer,
-        max_length,
-    ):
+        data: pd.DataFrame,
+        image_dir: str,
+        feature_extractor: ViTFeatureExtractor,
+        tokenizer: PreTrainedTokenizer,
+        max_length: int,
+    ) -> None:
         self.data = data
         self.image_dir = image_dir
         self.feature_extractor = feature_extractor
@@ -23,16 +25,16 @@ class ProductImageCaptionsDataset(Dataset):
         self.max_length = max_length
         self.cache = {}
 
-    def __len__(self):
+    def __len__(self) -> int:
         return len(self.data)
 
-    def __getitem__(self, idx):
+    def __getitem__(self, idx: int) -> dict[str, torch.Tensor]:
         return {
             'pixel_values': self._get_pixel_values(idx),
             'labels': self._get_labels(idx),
         }
 
-    def _get_pixel_values(self, idx):
+    def _get_pixel_values(self, idx: int) -> torch.Tensor:
         product_id = self.data['article_id'][idx]
         image_filepath = os.path.join(
             self.image_dir,
@@ -47,7 +49,7 @@ class ProductImageCaptionsDataset(Dataset):
             return_tensors='pt',
         ).pixel_values.squeeze()
 
-    def _get_labels(self, idx):
+    def _get_labels(self, idx: int) -> torch.Tensor:
         if idx in self.cache:
             return self.cache[idx]
         caption = add_special_tokens(
@@ -66,7 +68,7 @@ class ProductImageCaptionsDataset(Dataset):
         self.cache[idx] = labels
         return labels
 
-    def _labels_mask(self, labels):
+    def _labels_mask(self, labels: torch.Tensor) -> torch.Tensor:
         return torch.where(
             labels != self.tokenizer.pad_token_id,
             labels,
