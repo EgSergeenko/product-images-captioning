@@ -16,7 +16,7 @@
 `python src/inference.py`, файл с конфигурацией — <i>configs/inference.yaml</i>.
 * Создание обработанных датасетов из исходного:
 ```
-Usage: create_dataset.py [OPTIONS]
+Usage: python src/create_dataset.py [OPTIONS]
 Options:
   --input-dataset-filepath TEXT  [required]
   --output-dir TEXT              [required]
@@ -62,11 +62,72 @@ Options:
 Метрика [BLEU](https://en.wikipedia.org/wiki/BLEU) была создана для оценки качества машинного перевода, но может быть применима
 для любой задачи из семейства seq2seq.
 
-## Результаты экспериметнов
-...
+## Результаты экспериментов
+
+Среди множества гиперпараметров в основном подбирались, отвечающие за генерацию последовательностей.
+Например, допустимая максимальная длина текста, штрафы за повторения и однообразность, размер N-грамм,
+которые могут повторяться. Ниже приведены два набора параметров, показавших наилучшие значения метрик.
+
+* Param set #1
+```python
+{
+    'max_length': 64,
+    'num_beams': 6,
+    'num_beam_groups': 2,
+    'early_stopping': True,
+    'no_repeat_ngram_size': 2,
+    'length_penalty': 2.0,
+    'repetition_penalty': 3.0,
+    'diversity_penalty': 2.0,
+}
+```
+* Param set #2 
+```python
+{
+    'max_length': 64,
+    'num_beams': 4,
+    'num_beam_groups': 1,
+    'early_stopping': True,
+    'no_repeat_ngram_size': 2,
+    'length_penalty': 3.0,
+    'repetition_penalty': 3.0,
+    'diversity_penalty': 0.0,
+}
+```
+
+|              | SacreBLEU Val   | SacreBLEU Test |
+| :----------: | :-------------: | :------------: |
+| Param set #1 | 19.594          | 18.793         |
+| Param set #2 | 21.494          | 21.732         | 
 
 ## Примеры работы
-...
+
+<table>
+    <tr>
+        <td width="50" style="text-align: center"><b>Изображение из тестового набора</b></td>
+        <td style="text-align: center"><img src="docs/0795071001.jpg" width="200" alt="" style="text-align: center"></td>
+        <td style="text-align: center"><img src="docs/0831403001.jpg" width="200" alt=""></td>
+        <td style="text-align: center"><img src="docs/0803171001.jpg" width="200" alt=""></td>
+    </tr> 
+    <tr>
+        <td width="50" style="text-align: center"><b>Оригинальное описание</b></td>
+        <td>Biker jacket in imitation suede with a faux fur lining and details. Notch lapels, a diagonal zip down the front and side pockets</td>
+        <td>5-pocket trousers in stretch twill with a high waist, zip fly and button and skinny legs.</td>
+        <td>Hoop earrings in metal with beads made from reconstituted stones. Diameter 6 cm.</td>
+    </tr>
+    <tr>
+        <td width="50" style="text-align: center"><b>Сгенерированное описание</b></td>
+        <td>Double-breasted jacket in soft faux fur with notch lapels, concealed press-studs down the front and a single back vent. Lined.</td>
+        <td>5-pocket jeans in washed, stretch denim with a regular waist, zip fly and button and skinny legs.</td>
+        <td>Hoop earrings in metal decorated with plastic beads.</td>
+    </tr>
+    <tr>
+        <td width="50" style="text-align: center"><b>SacreBLUE</b></td>
+        <td style="text-align: center">13.833</td>
+        <td style="text-align: center">46.513</td>
+        <td style="text-align: center">7.764</td>
+    </tr>
+</table>
 
 ## Ресурсы
 
