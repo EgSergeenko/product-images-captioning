@@ -1,0 +1,45 @@
+defaults:
+  - _self_
+  - override hydra/hydra_logging: disabled
+  - override hydra/job_logging: disabled
+device: cuda
+seed: 42
+epochs: 5
+log_format: '[{asctime}] - {message}'
+eval_step: 500
+model:
+  max_length: 64
+  num_beams: 4
+  num_beam_groups: 1
+  early_stopping: true
+  no_repeat_ngram_size: 2
+  length_penalty: 3.0
+  repetition_penalty: 3.0
+  diversity_penalty: 0.0
+  encoder:
+    pretrained_name: google/vit-base-patch16-224-in21k
+    feature_extractor:
+      pretrained_name: google/vit-base-patch16-224-in21k
+  decoder:
+    pretrained_name: distilgpt2
+    tokenizer:
+      pretrained_name: distilgpt2
+optimizer:
+  lr: 0.0001
+data:
+  max_length: 64
+  image_dir: data/images
+  train:
+    csv_filepath: data/train.csv
+    batch_size: 16
+    shuffle: true
+    drop_last: true
+  val:
+    csv_filepath: data/val.csv
+    batch_size: 1
+    shuffle: false
+    drop_last: false
+  checkpoint:
+    model: vit-distilgpt2
+    tokenizer: vit-distilgpt2-tokenizer
+    feature_extractor: vit-distilgpt2-feature-extractor

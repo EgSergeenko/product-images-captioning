@@ -1,0 +1,17 @@
+defaults:
+  - _self_
+  - override hydra/hydra_logging: disabled
+  - override hydra/job_logging: disabled
+device: cuda
+log_format: '[{asctime}] - {message}'
+model:
+  pretrained_name: pretrained/vit-distilgpt2
+  encoder:
+    feature_extractor:
+      pretrained_name: pretrained/vit-distilgpt2-feature-extractor
+  decoder:
+    tokenizer:
+      pretrained_name: pretrained/vit-distilgpt2-tokenizer
+data:
+  max_length: 64
+  image_filepath: data/images/012/0120129014.jpg
